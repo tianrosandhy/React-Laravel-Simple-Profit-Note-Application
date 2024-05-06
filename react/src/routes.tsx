@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import {useEffect} from 'react';
 import {useSelector} from 'react-redux';
 import Header from "./components/Header";
@@ -19,6 +19,7 @@ import FormLabelPage from "./pages/LabelPage/FormLabelPage";
 import TransactionPage from "./pages/TransactionPage";
 import TransactionRecordPage from "./pages/TransactionPage/TransactionRecordPage";
 import { useDispatch } from "react-redux";
+import { hideLoading, showLoading } from "./features/loading";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const auth = useAuthHelper();
@@ -28,6 +29,10 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 
   const token = useSelector((state: RootState) => state.auth.token);
 
+  useEffect(() => {
+      dispatch(showLoading());
+  }, [dispatch]);
+      
   // auth.storedToken must be verified first
   useEffect(() => {
     if (token.length > 0) {
@@ -51,10 +56,17 @@ function RequireAuth({ children }: { children: JSX.Element }) {
     navigate('/');
   }
 
+  useEffect(() => {
+      setTimeout(() => {
+      dispatch(hideLoading())
+    }, 200);
+  }, [dispatch, location.pathname])
+
   return children;
 }
 
-export default (
+export default function RouteData() {
+  return (
   <Router>
     <Header />
     <Routes>
@@ -77,4 +89,5 @@ export default (
     </Routes>
     {/* <Footer /> */}
   </Router>
-);
+  );
+}

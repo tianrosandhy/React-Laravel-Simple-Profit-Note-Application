@@ -1,6 +1,7 @@
 import {configureStore, combineReducers} from '@reduxjs/toolkit';
 import { persistStore, persistReducer} from 'redux-persist'
 import AuthTokenReducer from '@/features/authtoken';
+import LoadingReducer from '@/features/loading';
 import storage from 'redux-persist/lib/storage'
 
 const persistentConfig = {
@@ -10,13 +11,12 @@ const persistentConfig = {
 }
 
 const rootReducer = combineReducers({
-    auth: AuthTokenReducer,
+    auth: persistReducer(persistentConfig, AuthTokenReducer),
+    loading: LoadingReducer,
 })
 
-const persistedReducer = persistReducer(persistentConfig, rootReducer)
-
 const store = configureStore({
-    reducer: persistedReducer,
+    reducer: rootReducer,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: false,
     }),

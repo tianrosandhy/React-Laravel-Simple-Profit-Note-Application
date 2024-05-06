@@ -25,7 +25,7 @@ const ToastPromise = async (toast:any, promise:Promise<BackendResponse|null|unde
 const ErrorToast = (toast:any, message?:string) => {
     toast.closeAll()
     toast({
-        title: "Error",
+        title: "Oops",
         description: message || "Oops, something went wrong",
         status: "error",
         duration: 5000,

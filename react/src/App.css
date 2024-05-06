@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+.is-loading .loading-screen {
+  display: flex;
+  z-index: 9999;
+}
+
+.is-loaded .loading-screen {
+  display: none;
+}
