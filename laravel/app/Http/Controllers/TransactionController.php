@@ -94,12 +94,77 @@ class TransactionController extends Controller
         ], 'Transaction record created successfully');
     }
 
-    public function delete($transaction_id)
+    public function detail($transaction_id) 
+    {
+        $transaction = Transaction::with('wallet', 'label')->findOrFail($transaction_id);
+        return okJson($transaction, 'Transaction detail');
+    }
+
+    public function update(GenerateTransactionRequest $request, $transaction_id) 
+    {
+        $transaction = Transaction::findOrFail($transaction_id);
+
+        $used_wallet = WalletService::getUsedWallet($request->wallet_id);
+        $used_label = LabelService::getUsedLabel($request->label_id);
+
+        if (empty($used_wallet)) {
+            return errJson("Invalid request or wallet not found");
+        }
+
+        $member_balance = intval($request->get('member')->balance);
+        $wallet_balance = intval($used_wallet->balance);
+
+        $addition = $transaction->income - $transaction->expense;
+
+        if ($request->type == 'expense') {
+            $wallet_balance = $wallet_balance - intval($request->amount + $addition);
+            $member_balance = $member_balance - intval($request->amount + $addition);
+        } else {
+            $wallet_balance = $wallet_balance + intval($request->amount + $addition);
+            $member_balance = $member_balance + intval($request->amount + $addition);
+        }
+
+        if ($wallet_balance < 0 || $member_balance < 0) {
+            return errJson("This update will make insufficient balance");
+        }
+
+        $transaction->wallet_id = $used_wallet->id ?? null;
+        $transaction->label_id = $used_label->id ?? null;
+        if ($request->type == 'expense') {
+            $transaction->expense = intval($request->amount);
+        } else {
+            $transaction->income = intval($request->amount);
+        }
+        $transaction->transaction_date = isset($request->transaction_date) ? date('Y-m-d', strtotime($request->transaction_date)) : date('Y-m-d');
+        $transaction->notes = $request->notes;
+        $transaction->wallet_balance = $wallet_balance;
+        $transaction->total_balance = $member_balance;
+        $transaction->save();
+
+        // update wallet master balance too
+        $used_wallet->balance = $wallet_balance;
+        $used_wallet->save();
+
+        $request->get('member')->balance = $member_balance;
+        $request->get('member')->save();
+
+        // always recalculate after update
+        WalletService::recalculateBalance($request->get('member')->id, $transaction->transaction_date);
+
+        return okJson([
+            'transaction' => $transaction,
+            'new_wallet_balance' => $wallet_balance,
+            'new_total_balance' => $member_balance,
+        ], 'Transaction record updated successfully');
+    }
+
+    public function delete(Request $request, $transaction_id)
     {
         $transaction = Transaction::find($transaction_id);
         if (empty($transaction)) {
             return errJson("Transaction not found");
         }
+        $transaction_date = $transaction->transaction_date;
 
         $wallet = Wallet::find($transaction->wallet_id);
         if (empty($wallet)) {
@@ -129,6 +194,8 @@ class TransactionController extends Controller
 
         $request->get('member')->balance = $member_balance;
         $request->get('member')->save();
+
+        WalletService::recalculateBalance($request->get('member')->id, $transaction_date);
 
         return okJson([
             'new_wallet_balance' => $wallet_balance,

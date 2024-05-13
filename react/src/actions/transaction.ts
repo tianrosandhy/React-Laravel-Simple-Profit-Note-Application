@@ -18,6 +18,11 @@ const TransactionAction = {
         return res;
     },
 
+    getSingle: async (token:string, id: number) => {
+        const res = Backend.get({endpoint:`/transactions/${id}`, useBearer: true, bearerToken: token});
+        return res;
+    },
+
     getReport: async (token: string, param?:Record<string,string>) => {
         if (typeof param == "undefined") {
             param = {};
@@ -49,6 +54,33 @@ const TransactionAction = {
         }});
         return res;
     },
+
+    patch: async (token:string, transactionID:number, data: Partial<Transaction>) => {
+        var amount = 0;
+        var type = "";
+        if (data.expense && data.expense > 0) {
+            amount = data.expense;
+            type = "expense";
+        } else if (data.income && data.income > 0) {
+            amount = data.income;
+            type = "income";
+        }
+
+        const res = Backend.patch({endpoint:`/transactions/${transactionID}`, useBearer: true, bearerToken: token, body: {
+            wallet_id: data.wallet_id,
+            label_id: data.label_id || null,
+            amount: amount,
+            type: type,
+            transaction_date: data.transaction_date || null,
+            notes: data.notes || null,
+        }});
+        return res;
+    },
+
+    delete: async (token:string, id: number) => {
+        const res = Backend.del({endpoint:`/transactions/${id}`, useBearer: true, bearerToken: token});
+        return res;
+    }
 
 }
 

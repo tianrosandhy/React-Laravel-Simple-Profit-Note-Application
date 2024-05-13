@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
 import {useEffect} from 'react';
 import {useSelector} from 'react-redux';
 import Header from "./components/Header";
@@ -82,6 +82,7 @@ export default function RouteData() {
       <Route path="/label/detail/:id" element={<RequireAuth><FormLabelPage /></RequireAuth>} />
       <Route path="/transaction" element={<RequireAuth><TransactionPage /></RequireAuth>} />
       <Route path="/transaction/:id" element={<RequireAuth><TransactionPage /></RequireAuth>} />
+      <Route path="/transaction/edit/:transaction_id" element={<RequireAuth><TransactionPage /></RequireAuth>} />
       <Route path="/transaction/records" element={<RequireAuth><TransactionRecordPage /></RequireAuth>} />
       <Route path="/transaction/records/:id" element={<RequireAuth><TransactionRecordPage /></RequireAuth>} />
 

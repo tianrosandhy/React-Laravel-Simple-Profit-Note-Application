@@ -9,15 +9,19 @@ import TransactionAction from "@/actions/transaction"
 import WalletAction from "@/actions/wallet"
 import useToastHelper from "@/utils/toast"
 import { Link, useNavigate, useParams } from "react-router-dom"
+import { useDispatch } from "react-redux"
+import { hideLoading, showLoading } from "@/features/loading"
 
 export default function TransactionPage() {
     const {storedToken} = useAuthHelper();
     const toast = useToastHelper();
+    const dispatch = useDispatch();
     const [wallet, setWallet] = useState<Partial<Wallet>>({})
     const [label, setLabel] = useState<Partial<Label>>({})
     const [transactionType, setTransactionType] = useState<string>("income")
     const [amount, setAmount] = useState<string>("")
     const [note, setNote] = useState<string>("")
+    const [editTrxID, setEditTrxID] = useState<number>(0)
     const [transactionDate, setTransactionDate] = useState<string>(utils.dateToString(new Date()))
     const navigate = useNavigate();
 
@@ -30,12 +34,25 @@ export default function TransactionPage() {
                     setWallet(resp.data);
                 }
             })
+        } else if (param.transaction_id) {
+            TransactionAction.getSingle(storedToken, Number(param.transaction_id)).then(resp => {
+                if (resp?.data) {
+                    setEditTrxID(resp.data.id);
+                    setLabel(resp.data.label);
+                    setWallet(resp.data.wallet);
+                    setTransactionType(resp.data.expense > 0 ? "expense" : "income");
+                    setAmount(resp.data.expense > 0 ? resp.data.expense.toString() : resp.data.income.toString());
+                    setNote(resp.data.notes);
+                    setTransactionDate(resp.data.transaction_date);
+                }
+            })
         }
     }, [param.id, storedToken])
 
 
     const submitTransaction = (e:React.FormEvent) => {
         e.preventDefault();
+        dispatch(showLoading())
         const newTransaction:Transaction = {
             wallet_id: wallet.id || 0,
             label_id: label.id,
@@ -45,11 +62,15 @@ export default function TransactionPage() {
             transaction_date: transactionDate,
         }
 
-        TransactionAction.post(storedToken, newTransaction).then(resp => {
+        TransactionAction.patch(storedToken, editTrxID, newTransaction).then(resp => {
+            dispatch(hideLoading())
             toast.backendToast(resp);
             if (resp?.type == "success") {
                 navigate("/");
             }
+        }).catch(() => {
+            dispatch(hideLoading())
+            toast.errorToast("Failed to submit transaction");        
         });
 
     }
@@ -57,7 +78,7 @@ export default function TransactionPage() {
     return (
         <Flex className="p-4" justifyContent="center">
             <Box className="max-w-md w-full">
-                <h1 className="text-2xl mb-3">Add New Transaction</h1>
+                <h1 className="text-2xl mb-3">{ editTrxID > 0 ? 'Edit Transaction Data' : 'New Transaction Data' }</h1>
 
                 <form onSubmit={submitTransaction}>
                     <WalletChooser wallet={wallet} setWallet={setWallet} />
@@ -88,7 +109,12 @@ export default function TransactionPage() {
                                 <InputLeftElement pointerEvents='none' color='gray.300' px={3}>IDR</InputLeftElement>
                                 <Input value={Number(amount).toLocaleString()} onChange={(e) => {
                                     const val = e.target.value.replace(/,/g, '');
-                                    setAmount(val)
+                                    if (parseInt(val) < 0) return;
+                                    if (val == '') {
+                                        setAmount('0')
+                                    } else {
+                                        setAmount(parseInt(val).toString())
+                                    }
                                 }} />
                             </InputGroup>
                         </div>

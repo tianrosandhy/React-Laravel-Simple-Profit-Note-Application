@@ -7,6 +7,8 @@ import {
 
 import useToastHelper from "@/utils/toast"
 import LoginAction from "@/actions/login";
+import { useDispatch } from "react-redux";
+import { hideLoading, showLoading } from "@/features/loading";
 
 type FormLoginProps = {
     onModalOTPOpen: () => void;
@@ -16,10 +18,13 @@ type FormLoginProps = {
 
 const FormLogin:React.FC<FormLoginProps> = ({onModalOTPOpen, phone, setPhone}) => {
     const toast = useToastHelper();
+    const dispatch = useDispatch();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        dispatch(showLoading())
         const resp = await LoginAction(phone);
+        dispatch(hideLoading())
         toast.backendToast(resp);
         
         // do login action 

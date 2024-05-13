@@ -16,4 +16,13 @@ class Transaction extends Model
         static::addGlobalScope(new Scopes\MemberScope);
     }
 
+    public function wallet()
+    {
+        return $this->belongsTo(Wallet::class, 'wallet_id');
+    }
+
+    public function label()
+    {
+        return $this->belongsTo(Label::class, 'label_id');
+    }
 }

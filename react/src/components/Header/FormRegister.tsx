@@ -7,6 +7,8 @@ import {
 import {useState} from 'react';
 import RegisterAction from "@/actions/register";
 import useToastHelper from "@/utils/toast";
+import { useDispatch } from "react-redux";
+import { hideLoading, showLoading } from "@/features/loading";
 
 type FormRegisterProps = {
     onModalOTPOpen: () => void;
@@ -17,10 +19,13 @@ type FormRegisterProps = {
 const FormRegister:React.FC<FormRegisterProps> = ({onModalOTPOpen, phone, setPhone}) => {
     const [name, setName] = useState('');
     const toast = useToastHelper();
+    const dispatch = useDispatch();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        dispatch(showLoading())
         const resp = await RegisterAction(phone, name);
+        dispatch(hideLoading())
         toast.backendToast(resp);
         
         // do register action 

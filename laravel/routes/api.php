@@ -32,5 +32,7 @@ Route::middleware([
     Route::get('/transactions', [TransactionController::class, 'index'])->name('api.transactions.index');
     Route::get('/transactions/report', [TransactionController::class, 'report'])->name('api.transactions.report');
     Route::post('/transactions/new', [TransactionController::class, 'create'])->name('api.transactions.new');
+    Route::get('/transactions/{transaction_id}', [TransactionController::class, 'detail'])->name('api.transactions.detail');
+    Route::match(['put', 'patch'], '/transactions/{transaction_id}', [TransactionController::class, 'update'])->name('api.transactions.update');    
     Route::delete('/transactions/{transaction_id}', [TransactionController::class, 'delete'])->name('api.transactions.delete');
 });

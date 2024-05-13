@@ -55,11 +55,16 @@ class AuthController extends Controller
             return errJson($err);
         }
 
+        $success_message = 'Please check the OTP sent to your device to login';
+        if (config('app.env') == 'local') {
+            $success_message = 'OTP Send [Dummy]. Please insert 123456 as your OTP.';
+        }
+
         return okJson([
             'member_id' => $member->id,
             'status' => $member->status,
             'otp' => true,
-        ], 'Please check the OTP sent to your device to login');
+        ], $success_message);
     }
 
     public function resendOtp(AuthWhatsappNumberRequest $request)

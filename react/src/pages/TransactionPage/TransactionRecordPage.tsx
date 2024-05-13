@@ -1,5 +1,5 @@
-import {Box, SimpleGrid, Input, Select, Button, Text, Badge, TableContainer, Table, Thead, Tbody, Tr, Th, Td} from "@chakra-ui/react";
-import { useParams } from "react-router-dom";
+import {Box, SimpleGrid, Input, Select, Button, Text, Badge, TableContainer, Table, Thead, Tbody, Tr, Th, Td, useDisclosure} from "@chakra-ui/react";
+import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import {Wallet, Label, Transaction} from "@/types/model";
 import { useAuthHelper } from "@/utils/auth";
@@ -8,12 +8,19 @@ import WalletAction from "@/actions/wallet";
 import { BackendPaginationDataResponse } from "@/types/rest";
 import TransactionAction from "@/actions/transaction";
 import utils from "@/utils";
+import { useDispatch } from "react-redux";
+import { hideLoading, showLoading } from "@/features/loading";
+import { Icon } from "@iconify/react/dist/iconify.js";
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal";
+import useToastHelper from "@/utils/toast";
 
 export default function TransactionRecordPage() {
     const param = useParams();
     const [labels, setLabels] = useState<Label[]>([]);
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const {storedToken} = useAuthHelper();
+    const dispatch = useDispatch();
+    const toast = useToastHelper();
 
     const [selectedWallet, setSelectedWallet] = useState<string>("");
     const [selectedLabel, setSelectedLabel] = useState<string>("");
@@ -24,6 +31,8 @@ export default function TransactionRecordPage() {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loaded, setLoaded] = useState<boolean>(false);
     const [mode, setMode] = useState<string>("transaction");
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [tobeDeleted, setTobeDeleted] = useState<number>(0);
 
     const filterFilled = () => {
         return (selectedWallet != "" || selectedLabel != "" || selectedDate != "" || selectedEndDate != "") && page == 1;
@@ -56,7 +65,18 @@ export default function TransactionRecordPage() {
         }
     }, [storedToken, param.id])
 
+    const deleteTransaction = async () => {
+        TransactionAction.delete(storedToken, tobeDeleted).then((response) => {
+            toast.backendToast(response);
+            if (response?.type == "success") {
+                onClose();
+                loadTransaction(true);
+            }
+        });
+    }
+
     const loadTransaction = async (reset?:boolean) => {
+        dispatch(showLoading())
         var requestedPage = page;
         if (reset) {
             requestedPage = 1;
@@ -78,6 +98,7 @@ export default function TransactionRecordPage() {
         }
 
         TransactionAction.get(storedToken, transactionParam).then((res) => {
+            dispatch(hideLoading())
             if (res?.type == "success") {
                 const paginationResp:BackendPaginationDataResponse = res.data
                 const transactionDatas: Transaction[] = paginationResp.data;
@@ -86,6 +107,8 @@ export default function TransactionRecordPage() {
                 setTransactions(transactionDatas);
                 setLoaded(true);
             }
+        }).catch(() => {
+            dispatch(hideLoading())
         });
     };
 
@@ -164,12 +187,13 @@ export default function TransactionRecordPage() {
                                         <Th>Note</Th>
                                         <Th>Amount</Th>
                                         <Th>{mode == "transaction" ? "Total Balance": "Wallet Balance"}</Th>
+                                        <Th></Th>
                                     </Tr>
                                 </Thead>
                                 <Tbody>
                                     {transactions.map((transaction) => (
                                         <Tr key={transaction.id}>
-                                            <Td className="hidden sm:block">{utils.humanReadableDate(transaction.transaction_date || '')}</Td>
+                                            <Td className="hidden sm:table-cell">{utils.humanReadableDate(transaction.transaction_date || '')}</Td>
                                             <Td>
                                                 <div className="sm:hidden">
                                                     <small>{utils.humanReadableDate(transaction.transaction_date || '')}</small>
@@ -180,7 +204,7 @@ export default function TransactionRecordPage() {
                                                         printLabelBadge(labels.find((label) => label.id == transaction.label_id)!)
                                                     )}
                                                 </div>
-
+                                                [{transaction.id}] {` `}
                                                 {transaction.notes}
                                             </Td>
                                             <Td align="right">
@@ -189,6 +213,20 @@ export default function TransactionRecordPage() {
                                             </Td>
                                             <Td align="right">
                                                 {mode == "wallet" ? utils.rupiah(transaction.wallet_balance) : utils.rupiah(transaction.total_balance || 0)}
+                                            </Td>
+                                            <Td align="right">
+                                                <Button size="sm" as={Link} to={`/transaction/edit/${transaction.id}`}>
+                                                    <Icon icon="akar-icons:edit" className="text-blue-700"></Icon>
+                                                </Button>
+                                                <Button size="sm" onClick={() => {
+                                                    setTobeDeleted(transaction.id || 0);
+                                                    onOpen();
+                                                }}>
+                                                    <Icon icon="tabler:trash-x-filled" className="text-red-800"></Icon>
+                                                </Button>                                                
+                                                <DeleteConfirmationModal isOpen={isOpen} onClose={onClose} onConfirm={() => {
+                                                    deleteTransaction()
+                                                }} />
                                             </Td>
                                         </Tr>
                                     ))}

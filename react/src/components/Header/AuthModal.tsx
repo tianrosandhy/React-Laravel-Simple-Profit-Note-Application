@@ -21,6 +21,7 @@ import {doLogin} from '@/utils/auth';
 import {useDispatch} from 'react-redux';
 import {login} from '@/features/authtoken';
 import useToastHelper from '@/utils/toast';
+import { hideLoading, showLoading } from '@/features/loading';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -37,7 +38,9 @@ const AuthModal:React.FC<AuthModalProps> = ({isOpen, onClose}) => {
 
     const sendOTP = async (otpOverride?:string) => {
       const otpPassed = otpOverride || otp;
+      dispatch(showLoading())
       const resp = await OTPValidateAction(phone, otpPassed);
+      dispatch(hideLoading())
 
       if (resp?.type == "success" && typeof resp.data.token != "undefined") {
         const loginData = await doLogin(resp.data.token);
@@ -57,7 +60,9 @@ const AuthModal:React.FC<AuthModalProps> = ({isOpen, onClose}) => {
     }
 
     const resendOTP = async () => {
+      dispatch(showLoading())
       const resp = await OTPResendAction(phone);
+      dispatch(hideLoading())
       toast.backendToast(resp);
 
       if (resp?.type == "success") {
